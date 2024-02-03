@@ -3,6 +3,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+pub use super::Cashier;
 use epoch_timestamp::Epoch;
 
 #[derive(Debug, Clone)]
@@ -24,7 +25,7 @@ impl MemoryCashier {
     }
 }
 
-impl super::Cashier for MemoryCashier {
+impl Cashier for MemoryCashier {
     fn set(&self, key: &str, value: &str) -> anyhow::Result<()> {
         let mut cache = if let Ok(write_guard) = self.cache.write() {
             write_guard
@@ -87,5 +88,50 @@ impl super::Cashier for MemoryCashier {
         let mut cache = self.cache.write().unwrap();
         cache.clear();
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_set() {
+        let cashier = MemoryCashier::new();
+        cashier.set("key", "value").unwrap();
+        assert_eq!(cashier.get("key").unwrap().unwrap(), "value");
+    }
+
+    #[test]
+    fn test_set_with_ttl() {
+        let cashier = MemoryCashier::new();
+        cashier.set_with_ttl("key", "value", 1).unwrap();
+        assert_eq!(cashier.get("key").unwrap().unwrap(), "value");
+
+        std::thread::sleep(std::time::Duration::from_secs(2));
+        assert_eq!(cashier.get("key").unwrap(), None);
+    }
+
+    #[test]
+    fn test_get() {
+        let cashier = MemoryCashier::new();
+        cashier.set("key", "value").unwrap();
+        assert_eq!(cashier.get("key").unwrap().unwrap(), "value");
+    }
+
+    #[test]
+    fn test_delete() {
+        let cashier = MemoryCashier::new();
+        cashier.set("key", "value").unwrap();
+        cashier.delete("key").unwrap();
+        assert_eq!(cashier.get("key").unwrap(), None);
+    }
+
+    #[test]
+    fn test_clear() {
+        let cashier = MemoryCashier::new();
+        cashier.set("key", "value").unwrap();
+        cashier.clear().unwrap();
+        assert_eq!(cashier.get("key").unwrap(), None);
     }
 }
