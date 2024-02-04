@@ -14,3 +14,4 @@ homepage = "https://github.com/myyrakle/cashier/blob/master/README.md"
 [dependencies]
 anyhow = "1.0.79"
 epoch-timestamp = "1.0.0"
+redis = "0.24.0"

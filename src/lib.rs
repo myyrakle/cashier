@@ -17,3 +17,4 @@ pub trait Cashier {
 }
 
 pub mod memory;
+pub mod redis;
