@@ -16,5 +16,6 @@ pub trait Cashier {
     fn clear(&self) -> anyhow::Result<()>;
 }
 
+pub mod dynamo;
 pub mod memory;
 pub mod redis;
