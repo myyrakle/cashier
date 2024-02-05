@@ -33,14 +33,46 @@ impl DynamoCashier {
 
     /// Connect to a DynamoDB server
     pub fn connect(&mut self) -> anyhow::Result<()> {
-        tokio::task::block_in_place(move || {
-            Handle::current().block_on(async move {
+        tokio::task::block_in_place(|| {
+            Handle::current().block_on(async {
                 let config = match &self.config {
                     Some(config) => config.to_owned(),
                     None => aws_config::load_from_env().await,
                 };
 
                 self.client = Some(aws_sdk_dynamodb::Client::new(&config));
+            });
+        });
+
+        Ok(())
+    }
+
+    /// Check if the table exists
+    pub fn check_exists(&self) -> anyhow::Result<bool> {
+       tokio::task::block_in_place(|| {
+            Handle::current().block_on(async {
+                let client = match &self.client {
+                    Some(client) => client,
+                    None => return Err(anyhow::anyhow!("client is not set")),
+                };
+
+                let table_name = match &self.table_name {
+                    Some(table_name) => table_name,
+                    None => return Err(anyhow::anyhow!("table_name is not set")),
+                };
+
+                let describe_output = client.describe_table().table_name(table_name).send().await?;
+    
+                Ok(describe_output.table.is_some())
+            })
+        })
+    }
+
+    /// Create table if not exists
+    pub fn create_table_if_not_exists(&self) -> anyhow::Result<()> {
+        tokio::task::block_in_place(|| {
+            Handle::current().block_on(async {
+                self.client.
             });
         });
 
