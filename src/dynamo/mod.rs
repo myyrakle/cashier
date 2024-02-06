@@ -250,7 +250,30 @@ impl Cashier for DynamoCashier {
     }
 
     fn delete(&self, key: &str) -> anyhow::Result<()> {
-        todo!()
+        let result = tokio::task::block_in_place(|| {
+            Handle::current().block_on(async {
+                let client = match &self.client {
+                    Some(client) => client,
+                    None => return Err(anyhow::anyhow!("client is not set")),
+                };
+
+                let table_name = match &self.table_name {
+                    Some(table_name) => table_name,
+                    None => return Err(anyhow::anyhow!("table_name is not set")),
+                };
+
+                client
+                    .delete_item()
+                    .table_name(table_name)
+                    .key("key", AttributeValue::S(key.into()))
+                    .send()
+                    .await?;
+
+                Ok(())
+            })
+        });
+
+        result
     }
 
     fn clear(&self) -> anyhow::Result<()> {
