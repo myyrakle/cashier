@@ -14,7 +14,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let foo = cashier.get("asda2sd").unwrap();
     println!("foo: {:?}", foo);
 
-    cashier.delete("asdasd").unwrap();
+    cashier.clear().unwrap();
 
     Ok(())
 }

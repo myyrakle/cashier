@@ -1,10 +1,8 @@
 use aws_sdk_dynamodb::{
     error::SdkError,
-    operation::create_table,
     types::{
         builders::{AttributeDefinitionBuilder, KeySchemaElementBuilder},
-        AttributeDefinition, AttributeValue, BillingMode, KeySchemaElement, KeyType,
-        ScalarAttributeType,
+        AttributeValue, BillingMode, KeyType, ScalarAttributeType,
     },
 };
 use epoch_timestamp::Epoch;
@@ -277,6 +275,43 @@ impl Cashier for DynamoCashier {
     }
 
     fn clear(&self) -> anyhow::Result<()> {
-        todo!()
+        let result = tokio::task::block_in_place(|| {
+            Handle::current().block_on(async {
+                let client = match &self.client {
+                    Some(client) => client,
+                    None => return Err(anyhow::anyhow!("client is not set")),
+                };
+
+                let table_name = match &self.table_name {
+                    Some(table_name) => table_name,
+                    None => return Err(anyhow::anyhow!("table_name is not set")),
+                };
+
+                let scan_output = client.scan().table_name(table_name).send().await?;
+
+                let items = match scan_output.items {
+                    Some(items) => items,
+                    None => return Ok(()),
+                };
+
+                for item in items {
+                    let key = match item.get("key") {
+                        Some(key) => key,
+                        None => continue,
+                    };
+
+                    client
+                        .delete_item()
+                        .table_name(table_name)
+                        .key("key", key.to_owned())
+                        .send()
+                        .await?;
+                }
+
+                Ok(())
+            })
+        });
+
+        result
     }
 }
