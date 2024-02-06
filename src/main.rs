@@ -1,5 +1,5 @@
 use aws_sdk_dynamodb::types::AttributeValue;
-use cashier::dynamo;
+use cashier::{dynamo, Cashier};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -12,7 +12,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     cashier.connect().unwrap();
 
-    cashier.create_table_if_not_exists().unwrap();
+    cashier.set("key12", "value133").unwrap();
+    cashier.set_with_ttl("asdasd", "@!3123123", 100).unwrap();
 
     Ok(())
 }

@@ -7,6 +7,7 @@ use aws_sdk_dynamodb::{
         ScalarAttributeType,
     },
 };
+use epoch_timestamp::Epoch;
 use tokio::runtime::Handle;
 
 pub use super::Cashier;
@@ -169,37 +170,34 @@ impl Cashier for DynamoCashier {
     }
 
     fn set_with_ttl(&self, key: &str, value: &str, ttl: u64) -> anyhow::Result<()> {
-        todo!()
-        // let result = tokio::task::block_in_place(|| {
-        //     Handle::current().block_on(async {
-        //         let client = match &self.client {
-        //             Some(client) => client,
-        //             None => return Err(anyhow::anyhow!("client is not set")),
-        //         };
+        let result = tokio::task::block_in_place(|| {
+            Handle::current().block_on(async {
+                let client = match &self.client {
+                    Some(client) => client,
+                    None => return Err(anyhow::anyhow!("client is not set")),
+                };
 
-        //         let table_name = match &self.table_name {
-        //             Some(table_name) => table_name,
-        //             None => return Err(anyhow::anyhow!("table_name is not set")),
-        //         };
+                let table_name = match &self.table_name {
+                    Some(table_name) => table_name,
+                    None => return Err(anyhow::anyhow!("table_name is not set")),
+                };
 
-        //         let expired_at = (chrono::Utc::now() + chrono::Duration::seconds(ttl as i64))
-        //             .timestamp()
-        //             .to_string();
+                let expired_at = Epoch::now() + Epoch::second(ttl);
 
-        //         client
-        //             .put_item()
-        //             .table_name(table_name)
-        //             .item("key", value.into())
-        //             .item("value", value.into())
-        //             .item("expiredAt", expired_at.into())
-        //             .send()
-        //             .await?;
+                client
+                    .put_item()
+                    .table_name(table_name)
+                    .item("key", AttributeValue::S(key.into()))
+                    .item("value", AttributeValue::S(value.into()))
+                    .item("expiredAt", AttributeValue::N(expired_at.to_string()))
+                    .send()
+                    .await?;
 
-        //         Ok(())
-        //     })
-        // });
+                Ok(())
+            })
+        });
 
-        // result
+        result
     }
 
     fn get(&self, key: &str) -> anyhow::Result<Option<String>> {
