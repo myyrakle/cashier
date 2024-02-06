@@ -201,7 +201,52 @@ impl Cashier for DynamoCashier {
     }
 
     fn get(&self, key: &str) -> anyhow::Result<Option<String>> {
-        todo!()
+        let result = tokio::task::block_in_place(|| {
+            Handle::current().block_on(async {
+                let client = match &self.client {
+                    Some(client) => client,
+                    None => return Err(anyhow::anyhow!("client is not set")),
+                };
+
+                let table_name = match &self.table_name {
+                    Some(table_name) => table_name,
+                    None => return Err(anyhow::anyhow!("table_name is not set")),
+                };
+
+                let output = client
+                    .get_item()
+                    .table_name(table_name)
+                    .key("key", AttributeValue::S(key.into()))
+                    .send()
+                    .await?;
+
+                let item = match output.item {
+                    Some(item) => item,
+                    None => return Ok(None),
+                };
+
+                if let Some(expired_at) = item.get("expiredAt") {
+                    if let Ok(utc) = expired_at.as_n() {
+                        let number = utc.parse::<u64>().unwrap();
+                        if number < Epoch::now() {
+                            return Ok(None);
+                        }
+                    }
+                };
+
+                let value = match item.get("value") {
+                    Some(value) => value,
+                    None => return Ok(None),
+                };
+
+                match value.as_s() {
+                    Ok(value) => Ok(Some(value.to_string())),
+                    Err(_) => Ok(None),
+                }
+            })
+        });
+
+        result
     }
 
     fn delete(&self, key: &str) -> anyhow::Result<()> {

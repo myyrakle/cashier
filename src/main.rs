@@ -12,8 +12,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     cashier.connect().unwrap();
 
-    cashier.set("key12", "value133").unwrap();
-    cashier.set_with_ttl("asdasd", "@!3123123", 100).unwrap();
+    let foo = cashier.get("asda2sd").unwrap();
+    println!("foo: {:?}", foo);
 
     Ok(())
 }
