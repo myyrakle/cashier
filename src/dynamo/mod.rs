@@ -1,8 +1,10 @@
 use aws_sdk_dynamodb::{
+    error::SdkError,
     operation::create_table,
     types::{
-        builders::KeySchemaElementBuilder, AttributeDefinition, BillingMode, KeySchemaElement,
-        KeyType,
+        builders::{AttributeDefinitionBuilder, KeySchemaElementBuilder},
+        AttributeDefinition, AttributeValue, BillingMode, KeySchemaElement, KeyType,
+        ScalarAttributeType,
     },
 };
 use tokio::runtime::Handle;
@@ -68,13 +70,17 @@ impl DynamoCashier {
                     None => return Err(anyhow::anyhow!("table_name is not set")),
                 };
 
-                let describe_output = client
-                    .describe_table()
-                    .table_name(table_name)
-                    .send()
-                    .await?;
+                let describe_output = client.describe_table().table_name(table_name).send().await;
 
-                Ok(describe_output.table.is_some())
+                match describe_output {
+                    Err(SdkError::ServiceError(err))
+                        if err.err().is_resource_not_found_exception() =>
+                    {
+                        Ok(false)
+                    }
+                    Err(err) => Err(err.into()),
+                    Ok(_) => Ok(true),
+                }
             })
         })
     }
@@ -96,6 +102,13 @@ impl DynamoCashier {
                 let _ = client
                     .create_table()
                     .table_name(table_name)
+                    .attribute_definitions(
+                        AttributeDefinitionBuilder::default()
+                            .attribute_name("key".to_string())
+                            .attribute_type(ScalarAttributeType::S)
+                            .build()
+                            .unwrap(),
+                    )
                     .key_schema(
                         KeySchemaElementBuilder::default()
                             .attribute_name("key".to_string())
@@ -123,5 +136,81 @@ impl DynamoCashier {
         }
 
         self.create_table()
+    }
+}
+
+impl Cashier for DynamoCashier {
+    fn set(&self, key: &str, value: &str) -> anyhow::Result<()> {
+        let result = tokio::task::block_in_place(|| {
+            Handle::current().block_on(async {
+                let client = match &self.client {
+                    Some(client) => client,
+                    None => return Err(anyhow::anyhow!("client is not set")),
+                };
+
+                let table_name = match &self.table_name {
+                    Some(table_name) => table_name,
+                    None => return Err(anyhow::anyhow!("table_name is not set")),
+                };
+
+                client
+                    .put_item()
+                    .table_name(table_name)
+                    .item("key", AttributeValue::S(key.into()))
+                    .item("value", AttributeValue::S(value.into()))
+                    .send()
+                    .await?;
+
+                Ok(())
+            })
+        });
+
+        result
+    }
+
+    fn set_with_ttl(&self, key: &str, value: &str, ttl: u64) -> anyhow::Result<()> {
+        todo!()
+        // let result = tokio::task::block_in_place(|| {
+        //     Handle::current().block_on(async {
+        //         let client = match &self.client {
+        //             Some(client) => client,
+        //             None => return Err(anyhow::anyhow!("client is not set")),
+        //         };
+
+        //         let table_name = match &self.table_name {
+        //             Some(table_name) => table_name,
+        //             None => return Err(anyhow::anyhow!("table_name is not set")),
+        //         };
+
+        //         let expired_at = (chrono::Utc::now() + chrono::Duration::seconds(ttl as i64))
+        //             .timestamp()
+        //             .to_string();
+
+        //         client
+        //             .put_item()
+        //             .table_name(table_name)
+        //             .item("key", value.into())
+        //             .item("value", value.into())
+        //             .item("expiredAt", expired_at.into())
+        //             .send()
+        //             .await?;
+
+        //         Ok(())
+        //     })
+        // });
+
+        // result
+    }
+
+    fn get(&self, key: &str) -> anyhow::Result<Option<String>> {
+        todo!()
+    }
+
+    fn delete(&self, key: &str) -> anyhow::Result<()> {
+        todo!()
+    }
+
+    fn clear(&self) -> anyhow::Result<()> {
+        todo!()
     }
 }
