@@ -1,6 +1,6 @@
 [package]
 name = "cashier"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 authors = ["myyrakle <sssang97@naver.com>"] 
@@ -17,14 +17,14 @@ epoch-timestamp = "1.0.0"
 tokio = { version="1.36.0", features=["full"] }
 futures = { version="0.3.30", features=["executor"] }
 
-[target.'cfg(dynamo)'.dependencies]
+[target.'cfg(features="dynamo")'.dependencies]
 aws-config = { version = "1.1.4", features = ["behavior-version-latest"] }
 aws-sdk-dynamodb = "1.13.1"
 
-[target.'cfg(redis)'.dependencies]
+[target.'cfg(features="redis")'.dependencies]
 redis = "0.24.0"
 
-[target.'cfg(postgres)'.dependencies]
+[target.'cfg(features="postgres")'.dependencies]
 postgres = "0.19.7"
 
 [features]
