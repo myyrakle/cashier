@@ -16,10 +16,10 @@ pub trait Cashier {
     fn clear(&self) -> anyhow::Result<()>;
 }
 
-#[cfg(features = "dynamo")]
+#[cfg(feature = "dynamo")]
 pub mod dynamo;
 
 pub mod memory;
 
-#[cfg(features = "redis")]
+#[cfg(feature = "redis")]
 pub mod redis;
