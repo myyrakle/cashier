@@ -1,6 +1,6 @@
 [package]
 name = "cashier"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 license = "MIT"
 authors = ["myyrakle <sssang97@naver.com>"] 
@@ -26,5 +26,5 @@ postgres = { version = "0.19.7", optional = true }
 default = []
 
 full = ["dynamo", "redis"]
-dynamo = ["dep:redis"]
-redis = ["dep:aws-config", "dep:aws-sdk-dynamodb"]
+dynamo = ["dep:aws-config", "dep:aws-sdk-dynamodb"]
+redis = ["dep:redis"]
