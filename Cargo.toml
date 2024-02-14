@@ -14,8 +14,22 @@ homepage = "https://github.com/myyrakle/cashier/blob/master/README.md"
 [dependencies]
 anyhow = "1.0.79"
 epoch-timestamp = "1.0.0"
-redis = "0.24.0"
-aws-config = { version = "1.1.4", features = ["behavior-version-latest"] }
-aws-sdk-dynamodb = "1.13.1"
 tokio = { version="1.36.0", features=["full"] }
 futures = { version="0.3.30", features=["executor"] }
+
+[target.'cfg(dynamo)'.dependencies]
+aws-config = { version = "1.1.4", features = ["behavior-version-latest"] }
+aws-sdk-dynamodb = "1.13.1"
+
+[target.'cfg(redis)'.dependencies]
+redis = "0.24.0"
+
+[target.'cfg(postgres)'.dependencies]
+postgres = "0.19.7"
+
+[features]
+default = []
+
+full = ["dynamo", "redis"]
+dynamo = []
+redis = []
